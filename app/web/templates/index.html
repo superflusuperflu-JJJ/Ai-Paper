@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Paper Daily</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260306e" />
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero glass">
+        <div class="hero-copy">
+          <p class="eyebrow">Daily Intelligence Briefing</p>
+          <h1>AI Paper Daily</h1>
+          <p class="sub">每天自动汇总高价值 AI 论文，中文结构化解读与每篇独立思维导图。</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn" id="refresh-btn" onclick="location.reload()">刷新页面</button>
+          <span class="date-chip" id="current-date">{{ today }}</span>
+        </div>
+      </header>
+
+      <div class="content-grid">
+        <section class="glass panel main-panel">
+          <div class="panel-head">
+            <h2 id="panel-title">今日精选</h2>
+            <span class="count" id="paper-count">0 篇</span>
+          </div>
+          <div id="papers-container"></div>
+        </section>
+
+        <aside class="glass panel side-panel">
+          <div class="panel-head">
+            <h2>历史日期</h2>
+          </div>
+          <ul class="history" id="history-list">
+            {% for h in history %}
+              <li><button class="day-btn" data-date="{{ h.run_date }}">{{ h.run_date }}</button></li>
+            {% endfor %}
+          </ul>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      window.__TODAY__ = "{{ today }}";
+    </script>
+    <script src="/static/app.js?v=20260306e"></script>
+  </body>
+</html>

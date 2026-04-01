@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.aipaper.daily</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/jiachen03/Documents/Paper/ai-paper-daily/.venv/bin/python</string>
+    <string>-c</string>
+    <string>import sys; sys.path.insert(0, '/Users/jiachen03/Documents/Paper/ai-paper-daily'); from app.main import cmd_run_once; cmd_run_once()</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>10</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/jiachen03/Documents/Paper/ai-paper-daily/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/jiachen03/Documents/Paper/ai-paper-daily/logs/launchd.err.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
