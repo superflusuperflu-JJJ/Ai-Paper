@@ -34,27 +34,75 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-可选：在 `.env` 填 `SEMANTIC_SCHOLAR_API_KEY`，可显著降低 `429` 限流概率。
+必要配置：
+- 在 `.env` 中填写至少一个可用的 LLM provider，例如 `DOUBAO_API_KEY` + `DOUBAO_MODEL`
+- `SEMANTIC_SCHOLAR_API_KEY` 可选，但能显著降低限流概率
+- `DEDUPE_DAYS` 默认为 `7`，表示默认去重最近 7 天重复论文
 
-### 手动跑一次
+## 本地使用
+### 手动生成一次日报
 ```bash
 python -m app.main run-once
 ```
 
-### 启动网页
+### 启动网页服务
 ```bash
 python -m app.main web
 # 默认 http://127.0.0.1:8000
 ```
 
-## 定时任务（macOS launchd）
-1. 替换 `launchd/com.aipaper.daily.plist` 中的绝对路径
-2. 加载任务：
+### 一键生成并打开网页
 ```bash
+./scripts/force_refresh_open.sh
+```
+
+这个命令会：
+- 先执行一次日报生成
+- 确保本地网页服务可访问
+- 自动打开当天页面，并带上当天日期参数，避免打开到错误日期或旧缓存
+
+## 定时任务（macOS launchd）
+项目包含两个 launchd 任务：
+- `com.aipaper.daily.plist`：每天 10:00 生成日报
+- `com.aipaper.web.plist`：保持本地网页服务常驻
+
+加载方式：
+```bash
+launchctl unload ~/Library/LaunchAgents/com.aipaper.web.plist 2>/dev/null || true
 launchctl unload ~/Library/LaunchAgents/com.aipaper.daily.plist 2>/dev/null || true
+cp launchd/com.aipaper.web.plist ~/Library/LaunchAgents/
 cp launchd/com.aipaper.daily.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.aipaper.web.plist
 launchctl load ~/Library/LaunchAgents/com.aipaper.daily.plist
 ```
+
+## 常见问题
+### 早上自动打开的页面为空
+优先看日志：
+```bash
+tail -n 80 logs/daily-$(date +%Y%m%d).log
+```
+
+常见原因：
+- 抓取源失败，导致当天没有论文数据
+- LLM provider 未配置或调用失败
+
+从当前实现开始，如果没有可用 LLM 或所有 LLM 都失败，任务会直接失败，不会再写入模板内容。
+
+### 手动点通知打开的页面和自动打开不一致
+当前已统一成按 URL 中的 `date` 参数打开当天页面。自动打开、点击通知、手动刷新都应指向同一天数据。
+
+### 怎样确认今天的数据是否真的生成成功
+```bash
+cat logs/status.json
+```
+
+### 如何避免最近几天重复推到同一篇论文
+在 `.env` 调整：
+```bash
+DEDUPE_DAYS=7
+```
+数值越大，跨天去重越严格。
 
 ## 目录
 - `app/` 核心代码
