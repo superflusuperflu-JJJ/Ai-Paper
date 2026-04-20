@@ -1,5 +1,10 @@
 const charts = [];
 
+function getRequestedDate() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("date") || window.__TODAY__;
+}
+
 function escapeHtml(input) {
   const map = {
     "&": "&amp;",
@@ -88,7 +93,7 @@ function renderPapers(runDate, papers) {
 
   const container = document.getElementById("papers-container");
   if (!papers.length) {
-    container.innerHTML = '<p class="empty">当前日期没有论文数据，可先执行 `python -m app.main run-once`。</p>';
+    container.innerHTML = '<p class="empty">当前日期还没有可展示的论文结果。可能是任务尚未完成，或本次抓取失败。</p>';
     return;
   }
 
@@ -136,6 +141,11 @@ async function loadDay(runDate) {
   if (!resp.ok) return;
   const data = await resp.json();
   renderPapers(runDate, data.papers || []);
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("date") !== runDate) {
+    params.set("date", runDate);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+  }
 
   document.querySelectorAll(".day-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.date === runDate);
@@ -147,4 +157,4 @@ document.querySelectorAll(".day-btn").forEach((btn) => {
 });
 
 window.addEventListener("resize", () => charts.forEach((c) => c.resize()));
-loadDay(window.__TODAY__);
+loadDay(getRequestedDate());

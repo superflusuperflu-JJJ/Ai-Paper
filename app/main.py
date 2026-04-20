@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import json
+from urllib.parse import urlencode
 
 import uvicorn
 
@@ -10,6 +11,13 @@ from app.config import ensure_dirs, settings
 from app.pipeline import DailyPipeline
 from app.services.logger import build_logger
 from app.services.notifier import notify_mac
+
+
+def build_dashboard_url(run_date: str, *, cache_bust: str | None = None) -> str:
+    params = {"date": run_date}
+    if cache_bust:
+        params["ts"] = cache_bust
+    return f"{settings.dashboard_url}?{urlencode(params)}"
 
 
 def cmd_run_once() -> None:
@@ -21,8 +29,12 @@ def cmd_run_once() -> None:
 
     try:
         result = pipeline.run_once()
+        opened_url = build_dashboard_url(
+            result.get("run_date", datetime.now().date().isoformat()),
+            cache_bust=datetime.now().strftime("%Y%m%d%H%M%S"),
+        )
         logger.info("run success: %s", result)
-        logger.info("open dashboard: %s", settings.dashboard_url)
+        logger.info("open dashboard: %s", opened_url)
         status_file.write_text(
             json.dumps(
                 {
@@ -38,10 +50,14 @@ def cmd_run_once() -> None:
         notify_mac(
             settings.notify_title,
             f"今日论文已更新（{result.get('count', 0)}篇），点击打开页面。",
-            settings.dashboard_url,
+            opened_url,
         )
     except Exception as exc:
         logger.exception("run failed after retry")
+        opened_url = build_dashboard_url(
+            datetime.now().date().isoformat(),
+            cache_bust=datetime.now().strftime("%Y%m%d%H%M%S"),
+        )
         status_file.write_text(
             json.dumps(
                 {
@@ -53,7 +69,7 @@ def cmd_run_once() -> None:
             ),
             encoding="utf-8",
         )
-        notify_mac(settings.notify_title, f"日报任务失败：{exc}", settings.dashboard_url)
+        notify_mac(settings.notify_title, f"日报任务失败：{exc}", opened_url)
         raise
 
 
