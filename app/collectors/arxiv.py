@@ -53,8 +53,12 @@ class ArxivCollector(Collector):
                     citation_count=0,
                     discussion_score=0.25,
                     trend_score=0.45,
+                    code_score=0.05 if "github" in abstract.lower() or "code" in abstract.lower() else 0.0,
+                    venue_score=0.1,
+                    review_score=0.0,
                     authors=authors,
                     tags=tags,
+                    source_trace=[self.name],
                 )
             )
         return papers

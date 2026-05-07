@@ -40,6 +40,9 @@ class Settings:
     enable_arxiv: bool = os.getenv("ENABLE_ARXIV", "1") == "1"
     enable_semantic_scholar: bool = os.getenv("ENABLE_SEMANTIC_SCHOLAR", "1") == "1"
     enable_huggingface: bool = os.getenv("ENABLE_HUGGINGFACE", "1") == "1"
+    enable_paperswithcode: bool = os.getenv("ENABLE_PAPERSWITHCODE", "1") == "1"
+    enable_acl: bool = os.getenv("ENABLE_ACL", "1") == "1"
+    enable_openreview: bool = os.getenv("ENABLE_OPENREVIEW", "0") == "1"
     semantic_scholar_api_key: str | None = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
 
     notify_title: str = os.getenv("NOTIFY_TITLE", "AI Paper Daily")

@@ -6,7 +6,10 @@ from datetime import date
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from app.collectors.arxiv import ArxivCollector
+from app.collectors.acl_anthology import ACLAnthologyCollector
 from app.collectors.huggingface import HuggingFacePapersCollector
+from app.collectors.openreview import OpenReviewCollector
+from app.collectors.paperswithcode import PapersWithCodeCollector
 from app.collectors.semantic_scholar import SemanticScholarCollector
 from app.config import settings
 from app.models.paper import Paper
@@ -17,6 +20,15 @@ from app.services.summarizer import PaperSummarizer
 
 
 class DailyPipeline:
+    source_priority = {
+        "semantic_scholar": 5,
+        "acl_anthology": 4,
+        "paperswithcode": 3,
+        "huggingface": 2,
+        "openreview": 2,
+        "arxiv": 1,
+    }
+
     def __init__(self, logger) -> None:
         self.logger = logger
         self.db = PaperDB(settings.db_path, settings.database_url)
@@ -31,6 +43,12 @@ class DailyPipeline:
             collectors.append(SemanticScholarCollector())
         if settings.enable_huggingface:
             collectors.append(HuggingFacePapersCollector())
+        if settings.enable_paperswithcode:
+            collectors.append(PapersWithCodeCollector())
+        if settings.enable_acl:
+            collectors.append(ACLAnthologyCollector())
+        if settings.enable_openreview:
+            collectors.append(OpenReviewCollector())
 
         all_papers: list[Paper] = []
         for c in collectors:
@@ -42,17 +60,41 @@ class DailyPipeline:
                 self.logger.warning("collector=%s failed: %s", c.name, exc)
         return all_papers
 
-    @staticmethod
-    def _dedupe(papers: list[Paper]) -> list[Paper]:
-        seen: set[str] = set()
-        results: list[Paper] = []
+    def _dedupe(self, papers: list[Paper]) -> list[Paper]:
+        merged: dict[str, Paper] = {}
         for p in papers:
             key = (p.title or "").strip().lower()
-            if not key or key in seen:
+            if not key:
                 continue
-            seen.add(key)
-            results.append(p)
-        return results
+            if key not in merged:
+                merged[key] = p
+                continue
+            merged[key] = self._merge_paper(merged[key], p)
+        return list(merged.values())
+
+    def _merge_paper(self, base: Paper, incoming: Paper) -> Paper:
+        if self.source_priority.get(incoming.source, 0) > self.source_priority.get(base.source, 0):
+            base.source = incoming.source
+            base.source_id = incoming.source_id
+            if incoming.url:
+                base.url = incoming.url
+        if incoming.abstract and len(incoming.abstract) > len(base.abstract):
+            base.abstract = incoming.abstract
+        if incoming.url and not base.url:
+            base.url = incoming.url
+        if incoming.published_at and (base.published_at is None or incoming.published_at > base.published_at):
+            base.published_at = incoming.published_at
+
+        base.citation_count = max(base.citation_count, incoming.citation_count)
+        base.discussion_score = max(base.discussion_score, incoming.discussion_score)
+        base.trend_score = max(base.trend_score, incoming.trend_score)
+        base.code_score = max(base.code_score, incoming.code_score)
+        base.venue_score = max(base.venue_score, incoming.venue_score)
+        base.review_score = max(base.review_score, incoming.review_score)
+        base.authors = list(dict.fromkeys(base.authors + incoming.authors))
+        base.tags = list(dict.fromkeys(base.tags + incoming.tags))
+        base.source_trace = list(dict.fromkeys((base.source_trace or [base.source]) + (incoming.source_trace or [incoming.source])))
+        return base
 
     def _dedupe_recent(self, papers: list[Paper]) -> list[Paper]:
         recent_titles = self.db.get_recent_titles(settings.dedupe_days)

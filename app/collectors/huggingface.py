@@ -42,6 +42,7 @@ class HuggingFacePapersCollector(Collector):
             # HF daily papers often has sparse numeric fields; apply rank fallback to keep outputs stable.
             discussion = max(discussion, 0.2 + rank_boost * 0.5)
             trend = max(trend, 0.3 + rank_boost * 0.5)
+            code_score = 0.25 if "github" in abstract.lower() or "code" in abstract.lower() else 0.0
             papers.append(
                 Paper(
                     source=self.name,
@@ -53,8 +54,12 @@ class HuggingFacePapersCollector(Collector):
                     citation_count=0,
                     discussion_score=discussion,
                     trend_score=trend,
+                    code_score=code_score,
+                    venue_score=0.2,
+                    review_score=0.1,
                     authors=it.get("authors") or [],
                     tags=it.get("tags") or [],
+                    source_trace=[self.name],
                 )
             )
         return [p for p in papers if p.title]

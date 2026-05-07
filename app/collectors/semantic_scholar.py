@@ -61,8 +61,12 @@ class SemanticScholarCollector(Collector):
                     citation_count=citation,
                     discussion_score=min(1.0, citation / 2000),
                     trend_score=0.55,
+                    code_score=0.0,
+                    venue_score=0.35,
+                    review_score=0.15,
                     authors=[a.get("name") for a in item.get("authors", []) if a.get("name")],
                     tags=[],
+                    source_trace=[self.name],
                 )
             )
         return papers
